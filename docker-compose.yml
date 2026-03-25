@@ -1,0 +1,72 @@
+# docker-compose.yml — Full-stack development environment
+# Usage: docker compose up --build
+# Services: PostgreSQL 16, Flask backend, React frontend
+
+services:
+  db:
+    # WHY alpine: smaller image (~70MB vs ~400MB), same Postgres engine
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-myapp_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_me_to_a_strong_password}
+      POSTGRES_DB: ${POSTGRES_DB:-myapp_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      # WHY named volume: data persists across container restarts and rebuilds
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      # WHY health check: backend depends_on uses this to wait for Postgres
+      # to actually accept connections, not just start the container
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-myapp_user}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-myapp_user}:${POSTGRES_PASSWORD:-change_me_to_a_strong_password}@db:5432/${POSTGRES_DB:-myapp_db}
+      FLASK_ENV: ${FLASK_ENV:-development}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-change_me_to_a_random_secret_key}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173,http://localhost:3000}
+    ports:
+      - "5000:5000"
+    volumes:
+      # WHY bind mount: enables hot-reload during development
+      - ./backend:/app
+    depends_on:
+      db:
+        # WHY condition: backend waits for Postgres to accept connections,
+        # not just for the container to start. Prevents connection errors on boot.
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/api/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped
+    # WHY --reload: auto-restart on code changes during development
+    command: flask run --host=0.0.0.0 --port=5000 --reload
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      # WHY anonymous volume for node_modules: prevents host OS node_modules
+      # from overwriting the container's Linux-compiled dependencies
+      - /app/node_modules
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
