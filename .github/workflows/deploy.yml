@@ -14,7 +14,9 @@
 #   2. Copy .env.example to .env and fill in production values
 #   3. Run `docker compose up --build -d` once manually to verify
 #   4. Add the GitHub Secrets above
-#   5. Push to main — this workflow handles the rest
+#   5. Set repository variable DEPLOY_ENABLED to "true"
+#      (Settings > Secrets and variables > Actions > Variables)
+#   6. Push to main — this workflow handles the rest
 
 name: Deploy to Production
 
@@ -26,7 +28,9 @@ jobs:
   deploy:
     name: Deploy
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    # Skips cleanly (no failing run) until you opt in: set the DEPLOY_ENABLED
+    # repository variable to "true" and add the secrets above.
+    if: ${{ github.ref == 'refs/heads/main' && vars.DEPLOY_ENABLED == 'true' }}
     steps:
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.2.0
