@@ -102,5 +102,5 @@ with app.app_context():
     db.session.commit()
 
     print(f'Seeded: 2 users, {len(admin_items) + len(user_items)} items')
-    print(f'  Admin: admin@example.com / admin123')
-    print(f'  User:  user@example.com / user123')
+    print('  Admin: admin@example.com / admin123')
+    print('  User:  user@example.com / user123')
