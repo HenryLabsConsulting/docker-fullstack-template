@@ -1,6 +1,8 @@
 # docker-fullstack-template
 
-Go from `git clone` to a running full-stack application with authentication, an example CRUD resource, and a CI/CD pipeline in under two minutes. Extracted from a production system — not a tutorial.
+Go from `git clone` to a running full-stack application with authentication, an example CRUD resource, and a CI/CD pipeline in under two minutes. Built as a standalone, synthetic-data demo, modeled on the kind of system I build for clients.
+
+![Running stack: authenticated React frontend on a Flask API](docs/docker_fullstack_running.png)
 
 ## Quick Start
 
