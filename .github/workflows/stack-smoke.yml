@@ -76,6 +76,26 @@ jobs:
           echo "$BODY" | grep -q '<title>MyApp</title>' || { echo "Frontend root missing expected <title>MyApp</title>"; exit 1; }
           echo "$BODY" | grep -q 'id="root"' || { echo "Frontend root missing #root mount node"; exit 1; }
 
+      - name: Assert CORS_ORIGINS is honored
+        run: |
+          # .env.example sets CORS_ORIGINS=http://localhost:5173,http://localhost:3000
+          # Confirm both configured origins are reflected, and an origin not in
+          # the list is rejected — proves the env var actually drives CORS.
+          for ORIGIN in http://localhost:5173 http://localhost:3000; do
+            GOT=$(curl -sf -o /dev/null -H "Origin: $ORIGIN" -w "%{header_json}" http://localhost:5000/api/health \
+              | python3 -c "import sys,json; print(json.load(sys.stdin).get('access-control-allow-origin',['']) [0])")
+            if [ "$GOT" != "$ORIGIN" ]; then
+              echo "Expected Access-Control-Allow-Origin: $ORIGIN, got: $GOT"
+              exit 1
+            fi
+          done
+          UNLISTED=$(curl -sf -o /dev/null -H "Origin: http://evil.example.com" -w "%{header_json}" http://localhost:5000/api/health \
+            | python3 -c "import sys,json; print(json.load(sys.stdin).get('access-control-allow-origin',['']) [0])")
+          if [ -n "$UNLISTED" ]; then
+            echo "Unlisted origin was reflected in Access-Control-Allow-Origin: $UNLISTED"
+            exit 1
+          fi
+
       - name: Run auth + CRUD smoke test
         run: bash scripts/smoke_test.sh
 

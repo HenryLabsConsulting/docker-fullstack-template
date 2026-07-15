@@ -33,3 +33,6 @@ class Config:
 
     # --- Upload limits ---
     MAX_CONTENT_LENGTH = 25 * 1024 * 1024  # 25MB
+
+    # --- CORS ---
+    CORS_ORIGINS = os.environ.get('CORS_ORIGINS', 'http://localhost:5173')

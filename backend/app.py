@@ -29,16 +29,8 @@ def create_app(config_class=Config):
     bcrypt.init_app(app)
 
     # CORS: allow frontend origins. In production, restrict to your domain.
-    cors.init_app(app, resources={
-        r"/api/*": {
-            "origins": app.config.get(
-                'CORS_ORIGINS',
-                'http://localhost:5173'
-            ).split(',') if isinstance(
-                app.config.get('CORS_ORIGINS'), str
-            ) else ["http://localhost:5173"]
-        }
-    })
+    origins = [origin.strip() for origin in app.config['CORS_ORIGINS'].split(',')]
+    cors.init_app(app, resources={r"/api/*": {"origins": origins}})
 
     # Import models so Alembic can detect them for auto-migrations
     import models  # noqa: F401
