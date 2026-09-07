@@ -282,7 +282,7 @@ After setup, every push to `main` auto-deploys via GitHub Actions with health ch
 | `JWT_SECRET_KEY` | Secret for signing JWT tokens | `change_me_to_a_random_secret_key` |
 | `FLASK_ENV` | Application environment | `development` |
 | `CORS_ORIGINS` | Allowed origins (comma-separated) | `http://localhost:5173` |
-| `VITE_API_URL` | API base URL for the frontend | `http://localhost:5000` |
+| `VITE_API_URL` | Vite dev-server proxy target for backend API calls | `http://backend:5000` |
 
 ## License
 

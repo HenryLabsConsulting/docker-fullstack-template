@@ -15,7 +15,7 @@ export default defineConfig({
       // In Docker, "backend" resolves to the backend container.
       // In production, Nginx handles this instead.
       '/api': {
-        target: 'http://backend:5000',
+        target: process.env.VITE_API_URL ?? 'http://backend:5000',
         changeOrigin: true,
       },
     },
