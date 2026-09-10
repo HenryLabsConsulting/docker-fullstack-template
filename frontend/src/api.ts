@@ -3,7 +3,7 @@
  *
  * WHY interceptor pattern:
  *   - Automatically attaches the JWT token to every request
- *   - Handles 401 responses globally (redirect to login)
+ *   - Handles 401 responses globally (refresh + retry, then redirect to login)
  *   - Single place to configure base URL, headers, error handling
  *
  * Usage in components:
@@ -30,16 +30,40 @@ api.interceptors.request.use((config) => {
   return config
 })
 
-// Response interceptor: handle 401 (expired/invalid token)
+function clearAuthAndRedirect() {
+  localStorage.removeItem('access_token')
+  localStorage.removeItem('refresh_token')
+  localStorage.removeItem('user')
+  window.location.href = '/login'
+}
+
+// Response interceptor: handle 401 (expired access token).
+// First try to exchange the stored refresh token for a new access token and
+// retry the original request once; only redirect to login if that fails too.
+// The refresh call uses bare axios — going through `api` would attach the
+// expired access token via the request interceptor above.
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      // Token expired or invalid — clear stored auth and redirect to login
-      localStorage.removeItem('access_token')
-      localStorage.removeItem('refresh_token')
-      localStorage.removeItem('user')
-      window.location.href = '/login'
+  async (error) => {
+    const original = error.config
+    if (error.response?.status === 401 && original && !original._retry) {
+      const refreshToken = localStorage.getItem('refresh_token')
+      if (refreshToken) {
+        original._retry = true
+        try {
+          const { data } = await axios.post(
+            '/api/auth/refresh',
+            {},
+            { headers: { Authorization: `Bearer ${refreshToken}` } }
+          )
+          localStorage.setItem('access_token', data.access_token)
+          original.headers.Authorization = `Bearer ${data.access_token}`
+          return api(original)
+        } catch {
+          // Refresh token rejected/expired — fall through to logout
+        }
+      }
+      clearAuthAndRedirect()
     }
     return Promise.reject(error)
   }
